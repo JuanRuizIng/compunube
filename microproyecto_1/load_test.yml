@@ -1,0 +1,13 @@
+config:
+  target: "http://192.168.100.2"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      name: "Carga normal"
+    - duration: 20
+      arrivalRate: 50
+      name: "Pico de trafico"
+scenarios:
+  - flow:
+      - get:
+          url: "/"
