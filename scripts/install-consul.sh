@@ -7,28 +7,64 @@ install_common_packages
 
 log "Instalacion de Consul"
 
-if command -v consul >/dev/null 2>&1; then
-    echo "Consul ya esta instalado:"
-    consul version
-    exit 0
+if ! command -v consul >/dev/null 2>&1; then
+
+    echo "Consul no encontrado. Instalando..."
+
+    wget -O- https://apt.releases.hashicorp.com/gpg \
+        | gpg --dearmor \
+        | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+        >/dev/null
+
+    echo \
+    "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+        | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+    sudo apt-get update
+    sudo apt-get install -y consul
+
+else
+
+    echo "Consul ya esta instalado."
+
 fi
 
-wget -O- https://apt.releases.hashicorp.com/gpg \
-    | gpg --dearmor \
-    | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg \
-    >/dev/null
 
-echo \
-"deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-    | sudo tee /etc/apt/sources.list.d/hashicorp.list
-
-sudo apt-get update
-sudo apt-get install -y consul
+# ==========================================
+# DIRECTORIOS CONSUL
+# ==========================================
 
 sudo mkdir -p /etc/consul.d
 sudo mkdir -p /opt/consul
 
 sudo chown -R consul:consul /etc/consul.d
 sudo chown -R consul:consul /opt/consul
+
+
+# ==========================================
+# SYSTEMD OVERRIDE
+# ==========================================
+
+log "Configurando servicio systemd de Consul"
+
+sudo mkdir -p /etc/systemd/system/consul.service.d
+
+sudo tee /etc/systemd/system/consul.service.d/override.conf >/dev/null <<'EOF'
+[Service]
+Type=simple
+EOF
+
+sudo systemctl daemon-reload
+
+
+# ==========================================
+# VERIFICACION
+# ==========================================
+
+echo "Tipo de servicio Consul:"
+
+sudo systemctl show consul -p Type
+
+echo
 
 consul version
