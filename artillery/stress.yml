@@ -1,0 +1,25 @@
+config:
+  target: "http://192.168.100.10"
+
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Calentamiento"
+
+    - duration: 30
+      arrivalRate: 10
+      name: "Carga media"
+
+    - duration: 30
+      arrivalRate: 20
+      name: "Carga alta"
+
+    - duration: 30
+      arrivalRate: 30
+      name: "Estres"
+
+scenarios:
+  - name: "Prueba progresiva HAProxy"
+    flow:
+      - get:
+          url: "/"

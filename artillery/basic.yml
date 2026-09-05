@@ -1,0 +1,12 @@
+config:
+  target: "http://192.168.100.10"
+  phases:
+    - duration: 30
+      arrivalRate: 2
+      name: "Carga baja"
+
+scenarios:
+  - name: "Prueba basica HAProxy"
+    flow:
+      - get:
+          url: "/"
