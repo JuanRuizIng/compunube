@@ -23,6 +23,6 @@ logs/
 # OS
 .DS_Store
 
-# Artillery reports
+# Artillery temporary reports
 artillery-report*
 report.json
