@@ -1,0 +1,24 @@
+config:
+  target: "http://192.168.100.4"
+  phases:
+    # 1. Fase de Calentamiento (Tráfico base)
+    - duration: 20
+      arrivalRate: 5
+      name: "1. Calentamiento (Warm-up)"
+
+    # 2. Fase de Incremento Progresivo (Ramp-up)
+    - duration: 30
+      arrivalRate: 5
+      rampTo: 50
+      name: "2. Incremento Progresivo (Ramp-up)"
+
+    # 3. Fase de Carga Sostenida / Pico
+    - duration: 30
+      arrivalRate: 50
+      name: "3. Carga Sostenida (Sustained Peak)"
+
+scenarios:
+  - name: "Peticiones a la API balanceada"
+    flow:
+      - get:
+          url: "/"
