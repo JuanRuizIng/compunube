@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dl-app-code
+data:
+  app.py: |
+    import flask
+    import io
+    from PIL import Image
+    from mxnet import nd
+    from mxnet.gluon.data.vision import transforms
+    from gluoncv.model_zoo import get_model
+
+    app = flask.Flask(__name__)
+
+    # Requerimiento de la guía: pretrained=True
+    net = get_model('cifar_resnet20_v1', classes=10, pretrained=True)
+    class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+    @app.route("/predict", methods=["POST"])
+    def predict():
+        if flask.request.method == "POST":
+            if flask.request.files.get("img"):
+                img = Image.open(io.BytesIO(flask.request.files["img"].read()))
+                transform_fn = transforms.Compose([
+                    transforms.Resize(32),
+                    transforms.CenterCrop(32),
+                    transforms.ToTensor(),
+                    transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
+                ])
+                img = transform_fn(nd.array(img))
+                pred = net(img.expand_dims(axis=0))
+                ind = nd.argmax(pred, axis=1).astype('int')
+                
+                # Requerimiento de la guía: formato con paréntesis
+                prediction = ('The input picture is classified as [%s], with probability %.3f.'% (class_names[ind.asscalar()], nd.softmax(pred)[0][ind].asscalar()))
+                return prediction
+
+    if __name__ == '__main__':
+        app.run(host='0.0.0.0', port=5000)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubermatic-dl-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubermatic-dl
+  template:
+    metadata:
+      labels:
+        app: kubermatic-dl
+    spec:
+      containers:
+      - name: dl-container
+        image: python:3.10-slim
+        command: ["sh", "-c", "apt-get update && apt-get install -y libgomp1 libglib2.0-0 libquadmath0 && pip install --no-cache-dir 'numpy<1.24' flask mxnet gluoncv Pillow && python /app/app.py"]
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: code-volume
+          mountPath: /app
+      volumes:
+      - name: code-volume
+        configMap:
+          name: dl-app-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubermatic-dl-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: kubermatic-dl
+  ports:
+  - port: 5000
+    targetPort: 5000
